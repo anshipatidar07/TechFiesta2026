@@ -1,14 +1,23 @@
 "use client"
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts"
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts"
 
 interface DomainChartProps {
   domains: {
     web: number
     ml: number
-    cp: number
-    appDev: number
-    cyber: number
+    core: number
+    systems: number
+    tools: number
   }
 }
 
@@ -22,19 +31,39 @@ const COLORS = [
 
 export function DomainChart({ domains }: DomainChartProps) {
   const data = [
-    { name: "Web Dev", value: domains.web },
-    { name: "ML/AI", value: domains.ml },
-    { name: "CP/DSA", value: domains.cp },
-    { name: "App Dev", value: domains.appDev },
-    { name: "Cyber", value: domains.cyber },
+    { name: "Web Development", value: domains.web },
+    { name: "AI / Machine Learning", value: domains.ml },
+    { name: "Core Programming", value: domains.core },
+    { name: "Backend & Systems", value: domains.systems },
+    { name: "Tools & Platforms", value: domains.tools },
   ]
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-        <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} />
-        <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} />
+      <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="hsl(var(--border))"
+          opacity={0.3}
+        />
+        <XAxis
+  dataKey="name"
+  interval={0}
+  angle={-30}
+  textAnchor="end"
+  height={60}
+  stroke="hsl(var(--muted-foreground))"
+  fontSize={12}
+  tickLine={false}
+/>
+
+
+        <YAxis
+          domain={[0, 100]}
+          stroke="hsl(var(--muted-foreground))"
+          fontSize={12}
+          tickLine={false}
+        />
         <Tooltip
           contentStyle={{
             backgroundColor: "hsl(var(--popover))",
@@ -44,8 +73,8 @@ export function DomainChart({ domains }: DomainChartProps) {
           }}
         />
         <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-          {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          {data.map((_, index) => (
+            <Cell key={index} fill={COLORS[index % COLORS.length]} />
           ))}
         </Bar>
       </BarChart>
