@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useAppStore } from "@/lib/store"
 import { Card } from "@/components/ui/card"
@@ -11,11 +10,16 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { PlusIcon, XMarkIcon } from "@heroicons/react/24/outline"
+import { PlusIcon, XMarkIcon, DocumentArrowUpIcon, DocumentTextIcon } from "@heroicons/react/24/outline"
+import { extractTextFromFile, analyzeSkills } from "@/lib/documentParser" // Import our utility
 
 export default function PostOpportunityPage() {
   const router = useRouter()
   const { addOpportunity } = useAppStore()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [isParsing, setIsParsing] = useState(false)
+  const [fileName, setFileName] = useState("")
 
   const [formData, setFormData] = useState({
     title: "",
@@ -33,6 +37,53 @@ export default function PostOpportunityPage() {
   const [skillInput, setSkillInput] = useState("")
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState("")
+
+  // --- File Upload & Parsing Handler ---
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setFileName(file.name)
+    setIsParsing(true)
+
+    try {
+      // 1. Extract Text
+      const extractedText = await extractTextFromFile(file)
+      
+      // 2. Analyze Skills
+      const foundSkills = analyzeSkills(extractedText)
+
+      // 3. Update State
+      setFormData((prev) => ({ ...prev, description: extractedText }))
+      
+      // Merge found skills with existing ones, avoiding duplicates
+      setSkills((prev) => Array.from(new Set([...prev, ...foundSkills])))
+
+      useAppStore.getState().addNotification({
+        id: `N${Date.now()}`,
+        title: "Document Parsed",
+        message: `Extracted ${foundSkills.length} skills from ${file.name}`,
+        type: "success",
+        read: false,
+        timestamp: new Date().toISOString(),
+      })
+
+    } catch (error) {
+      console.error("Parsing error:", error)
+      useAppStore.getState().addNotification({
+        id: `ERR${Date.now()}`,
+        title: "Parsing Failed",
+        message: "Could not read the document. Please try a text, pdf, or docx file.",
+        type: "error",
+        read: false,
+        timestamp: new Date().toISOString(),
+      })
+    } finally {
+      setIsParsing(false)
+    }
+  }
+
+  // --- Existing Helper Functions ---
 
   const addSkill = () => {
     if (skillInput.trim() && !skills.includes(skillInput.trim())) {
@@ -98,7 +149,7 @@ export default function PostOpportunityPage() {
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Post New Opportunity</h1>
-        <p className="mt-1 text-muted-foreground">Create an internship, project, or full-time position</p>
+        <p className="mt-1 text-muted-foreground">Upload a Job Description (JD) to auto-fill details</p>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -143,26 +194,73 @@ export default function PostOpportunityPage() {
               </Select>
             </div>
 
-            <div>
-              <Label htmlFor="description">Description *</Label>
-              <Textarea
-                id="description"
-                required
-                rows={4}
-                placeholder="Describe the opportunity, responsibilities, and what you're looking for..."
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
+            {/* Document Upload & Description Section */}
+            <div className="space-y-3">
+              <Label>Description / Job Document *</Label>
+              
+              {/* File Input Zone */}
+              <div 
+                className="border-2 border-dashed border-input rounded-xl p-6 flex flex-col items-center justify-center bg-secondary/20 hover:bg-secondary/30 transition-colors cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <input 
+                  type="file" 
+                  ref={fileInputRef}
+                  className="hidden" 
+                  accept=".pdf,.docx,.txt"
+                  onChange={handleFileUpload}
+                />
+                
+                {isParsing ? (
+                  <div className="flex flex-col items-center animate-pulse">
+                    <DocumentTextIcon className="h-10 w-10 text-primary mb-2" />
+                    <p className="text-sm font-medium">Analyzing document...</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center text-center">
+                    <DocumentArrowUpIcon className="h-10 w-10 text-muted-foreground mb-2" />
+                    <p className="text-sm font-medium text-foreground">
+                      {fileName ? fileName : "Upload Job Description (PDF, DOCX, TXT)"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {fileName ? "Click to change file" : "We'll extract the skills automatically"}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Parsed Text Area (Editable) */}
+              <div className="relative">
+                <Label htmlFor="description" className="text-xs text-muted-foreground mb-1 block">
+                  Parsed Description (You can edit this)
+                </Label>
+                <Textarea
+                  id="description"
+                  required
+                  rows={6}
+                  placeholder="Or type description manually..."
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="bg-background"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Skills */}
+          {/* Skills Section - Auto-populated but editable */}
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">Required Skills</h2>
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-foreground">Required Skills</h2>
+              {skills.length > 0 && (
+                <span className="text-xs text-green-600 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">
+                  Auto-detected {skills.length} skills
+                </span>
+              )}
+            </div>
 
             <div className="flex gap-2">
               <Input
-                placeholder="Add a skill (e.g., React)"
+                placeholder="Add a skill manually (e.g., React)"
                 value={skillInput}
                 onChange={(e) => setSkillInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addSkill())}
@@ -173,13 +271,18 @@ export default function PostOpportunityPage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
+              {skills.length === 0 && (
+                <p className="text-sm text-muted-foreground italic">
+                  Upload a document to auto-detect skills or add them manually.
+                </p>
+              )}
               {skills.map((skill) => (
                 <span
                   key={skill}
-                  className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-sm font-medium text-secondary-foreground"
+                  className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-sm font-medium text-primary"
                 >
                   {skill}
-                  <button type="button" onClick={() => removeSkill(skill)}>
+                  <button type="button" onClick={() => removeSkill(skill)} className="hover:text-destructive transition-colors">
                     <XMarkIcon className="h-4 w-4" />
                   </button>
                 </span>
@@ -218,7 +321,7 @@ export default function PostOpportunityPage() {
             </div>
           </div>
 
-          {/* Additional Details */}
+          {/* Additional Details & Eligibility (Unchanged) */}
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <Label htmlFor="stipend">Stipend/Salary</Label>
@@ -241,10 +344,8 @@ export default function PostOpportunityPage() {
             </div>
           </div>
 
-          {/* Eligibility */}
           <div className="space-y-4">
             <h2 className="text-xl font-semibold text-foreground">Eligibility Criteria</h2>
-
             <div>
               <Label htmlFor="minCGPA">Minimum CGPA</Label>
               <Input
@@ -261,8 +362,8 @@ export default function PostOpportunityPage() {
           </div>
 
           <div className="flex gap-3 pt-4">
-            <Button type="submit" className="flex-1">
-              Post Opportunity
+            <Button type="submit" className="flex-1" disabled={isParsing}>
+              {isParsing ? "Processing File..." : "Post Opportunity"}
             </Button>
             <Button type="button" variant="outline" onClick={() => router.back()}>
               Cancel

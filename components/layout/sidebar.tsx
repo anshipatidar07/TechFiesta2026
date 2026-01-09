@@ -1,9 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
 import { useAppStore } from "@/lib/store"
 import { cn } from "@/lib/utils"
+import { usePathname, useRouter } from "next/navigation"
 import {
   HomeIcon,
   BriefcaseIcon,
@@ -20,6 +20,15 @@ import {
 export function Sidebar() {
   const pathname = usePathname()
   const { currentRole } = useAppStore()
+
+  const roleDashboardMap: Record<string, string> = {
+  student: "/dashboard/student",
+  teacher: "/dashboard/teacher",
+  tnp: "/dashboard/tnp",
+  recruiter: "/dashboard/recruiter",
+}
+
+   const router = useRouter()
 
   const navigation = {
     student: [
@@ -90,16 +99,25 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-border p-4">
-        <select
-          value={currentRole}
-          onChange={(e) => useAppStore.setState({ currentRole: e.target.value as any })}
-          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-        >
-          <option value="student">Student View</option>
-          <option value="tnp">TnP View</option>
-          <option value="teacher">Teacher View</option>
-          <option value="recruiter">Recruiter View</option>
-        </select>
+     <select
+  value={currentRole}
+  onChange={(e) => {
+    const role = e.target.value as
+      | "student"
+      | "teacher"
+      | "tnp"
+      | "recruiter"
+
+    useAppStore.setState({ currentRole: role })
+    router.push(`/dashboard/${role}`)
+  }}
+  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+>
+  <option value="student">Student View</option>
+  <option value="tnp">TnP View</option>
+  <option value="teacher">Teacher View</option>
+  <option value="recruiter">Recruiter View</option>
+</select>
       </div>
     </div>
   )
