@@ -607,3 +607,4 @@ export function generateTeamRecommendations(currentStudent: Student, allStudents
     .sort((a, b) => b.matchScore - a.matchScore)
     
 }
+
