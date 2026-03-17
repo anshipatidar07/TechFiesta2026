@@ -20,6 +20,39 @@ export default function RecruiterDashboard() {
   // New state for search query
   const [searchQuery, setSearchQuery] = useState("")
 
+  // Function to handle resume viewing
+  const handleViewResume = async (documentId: string) => {
+    try {
+      // Fetch the PDF from the download endpoint with anonymized parameter
+      const response = await fetch(
+        `http://localhost:5000/resume/download/${documentId}?anonymized=true`,
+        {
+          method: 'GET',
+          credentials: 'include', // Include cookies for authentication
+        }
+      )
+      
+      if (!response.ok) {
+        throw new Error('Failed to download resume')
+      }
+      
+      // Create a blob from the response
+      const blob = await response.blob()
+      
+      // Create a blob URL
+      const blobUrl = URL.createObjectURL(blob)
+      
+      // Open in new tab
+      window.open(blobUrl, '_blank')
+      
+      // Clean up the blob URL after a delay (in case the tab takes time to load)
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100)
+    } catch (error) {
+      console.error('Error viewing resume:', error)
+      alert('Failed to load resume. Please try again.')
+    }
+  }
+
   // Fetch data directly for authenticated recruiter sessions
   useEffect(() => {
     setIsLoading(true)
@@ -238,14 +271,13 @@ export default function RecruiterDashboard() {
                     )}
                   </div>
                 </div>
-                <Button size="sm" variant="outline" asChild className="w-full bg-transparent mt-2">
-                  <a 
-                    href={doc.document_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                  >
-                    View Resume PDF
-                  </a>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="w-full bg-transparent mt-2"
+                  onClick={() => handleViewResume(doc.id)}
+                >
+                  View Resume PDF
                 </Button>
               </div>
             ))}

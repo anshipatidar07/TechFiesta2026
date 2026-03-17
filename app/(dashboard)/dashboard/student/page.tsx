@@ -1279,7 +1279,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useAppStore } from "@/lib/store"
 import { StatCard } from "@/components/ui/stat-card"
 import { SkillBadge } from "@/components/ui/skill-badge"
@@ -1399,33 +1399,31 @@ export default function StudentDashboard() {
     ? normalizeSkillList(extractedSkills.map((s: any) => s.skill))
     : []
 
-  // Fetch resumes list from backend
-  useEffect(() => {
-    const fetchResumesList = async () => {
-      try {
-        setLoadingResumes(true)
-        const anonymizedParam = showAnonymizedResumes ? '?anonymized=true' : ''
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/resume/list${anonymizedParam}`, {
-          credentials: "include"
-        })
-        if (response.ok) {
-          const data = await response.json()
-          setResumes(data.documents || [])
-        }
-      } catch (error) {
-        console.error("Failed to fetch resumes list:", error)
-      } finally {
-        setLoadingResumes(false)
+  // Fetch resumes list from backend - using useCallback so it can be called from handleResumeUpload
+  const fetchResumesList = useCallback(async () => {
+    try {
+      setLoadingResumes(true)
+      const anonymizedParam = showAnonymizedResumes ? '?anonymized=true' : ''
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/resume/list${anonymizedParam}`, {
+        credentials: "include"
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setResumes(data.documents || [])
       }
+    } catch (error) {
+      console.error("Failed to fetch resumes list:", error)
+    } finally {
+      setLoadingResumes(false)
     }
+  }, [showAnonymizedResumes])
 
+  useEffect(() => {
     if (currentUser) {
-
-      
       setPdfUrls({})
       fetchResumesList()
     }
-  }, [currentUser, showAnonymizedResumes])
+  }, [currentUser, showAnonymizedResumes, fetchResumesList])
 
   // Fetch individual PDF files
   useEffect(() => {
@@ -1560,7 +1558,9 @@ export default function StudentDashboard() {
       })
 
       setShowResumeUpload(false)
-      window.location.reload()
+      
+      // Refresh the resume list instead of reloading the entire page
+      await fetchResumesList()
 
     } catch (error) {
       console.error("Upload error:", error)
@@ -1766,11 +1766,11 @@ export default function StudentDashboard() {
                                 height: 'calc(100% + 20px)',
                                 overflow: 'hidden'
                               }}
-                              title={`Preview of ${resume.name}`}
+                              title={`Preview of ${user?.username || 'Student'} (${index + 1})`}
                             />
                           </div>
                           <button
-                            onClick={(e) => handleDownloadResume(e, pdfUrl, resume.name)}
+                            onClick={(e) => handleDownloadResume(e, pdfUrl, `${user?.username || 'Student'} (${index + 1}).pdf`)}
                             className="absolute top-2 right-2 p-2 rounded-lg bg-primary/90 text-primary-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-primary z-10"
                             title="Download resume"
                           >
@@ -1780,8 +1780,8 @@ export default function StudentDashboard() {
                       )}
                     </div>
                     <div className="p-3">
-                      <p className="text-sm font-medium text-foreground truncate" title={resume.name || `Resume ${index + 1}`}>
-                        {resume.name || `Resume ${index + 1}`}
+                      <p className="text-sm font-medium text-foreground truncate" title={`${user?.username || 'Student'} (${index + 1})`}>
+                        {user?.username || 'Student'} ({index + 1})
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {resume.created_at ? new Date(resume.created_at).toLocaleDateString() : 'PDF Document'}
