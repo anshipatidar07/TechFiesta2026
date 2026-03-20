@@ -17,7 +17,6 @@ import {
   EnvelopeIcon,
   CheckIcon,
   PaperAirplaneIcon, // Added for Sent Invitations
-  PartyHornIcon 
 } from "@heroicons/react/24/outline"
 import { toast } from "sonner"
 import { useUser } from "@/contexts/UserContext"
@@ -83,7 +82,7 @@ export default function TeamBuilderPage() {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/students", { credentials: "include" });
+        const response = await fetch(`http://localhost:5000/api/students/${currentUser?.id}`, { credentials: "include" });
         const data = await response.json();
         if (response.ok) {
           const transformedStudents = data.map((student: any) => ({
