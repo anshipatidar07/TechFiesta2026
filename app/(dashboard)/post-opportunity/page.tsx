@@ -21,6 +21,7 @@ export default function PostOpportunityPage() {
   const apiBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000"
   const { user } = useUser()
   const userId = user?.id;
+  console.log("userId: ",userId);
   const [isParsing, setIsParsing] = useState(false)
   const [fileName, setFileName] = useState("")
 
@@ -33,8 +34,9 @@ export default function PostOpportunityPage() {
     duration: "",
     deadline: "",
     minCGPA: "",
-    departments: [] as string[],
-    years: [] as number[],
+    departments: [],   // ✅ MUST be array
+  years: [],         // ✅ MUST be array
+  deadline: "", 
   })
 
   const [skills, setSkills] = useState<string[]>([])
@@ -117,53 +119,135 @@ export default function PostOpportunityPage() {
     const resolvedDeadline = formData.deadline || 
     new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    if(formData.type === "project") {
-      const payload = {
-        title: formData.title,
-        company: formData.company,
-        type: formData.type,
-        description: formData.description,
-        skills: skills, // String array
-        min_cgpa: formData.minCGPA,
-        registration_deadline: resolvedDeadline,
-        userid: userId 
-      };
+  // ─────────────────────────────────────────────
+  // CASE 1: Academic Project
+  // POST /api/academic-project/
+  // ─────────────────────────────────────────────
+  if (formData.type === "project") {
+    const payload = {
+      title: formData.title,
+      company: formData.company,
+      type: formData.type,
+      description: formData.description,
+      skills: skills,               // string[] → joined as CSV in backend
+      min_cgpa: formData.minCGPA,
+      registration_deadline: resolvedDeadline,
+      userid: userId,               // teacher lookup happens on backend
+    };
 
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/post-opportunity/opportunities`, {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/academic-project/`,
+        {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
-        });
-
-        if (response.ok) {
-          useAppStore.getState().addNotification({
-            id: `notif-${Date.now()}`, 
-            title: "Success",
-            message: formData.type === 'project' 
-            ? "Project posted and mapped to Academic Projects." 
-            : "Opportunity posted to Company Drives.",
-            type: "success",
-            read: false,       
-            timestamp: new Date().toISOString(), 
-          });
-          router.push("/opportunities");
-        } else {
-          throw new Error("Backend rejection");
         }
-      } catch (error) {
-        console.error("Submission error:", error);
-        useAppStore.getState().addNotification({
-          id: `ERR${Date.now()}`,
-          title: "Submission Failed",
-          message: "Failed to submit opportunity.",
-          type: "error",
-          read: false,
-          timestamp: new Date().toISOString(),
-        })
-      }
-  }else {
+      );
 
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Backend rejected the request");
+      }
+
+      useAppStore.getState().addNotification({
+        id: `N${Date.now()}`,
+        title: "Project Posted",
+        message: "Academic project posted and mapped successfully.",
+        type: "success",
+        read: false,
+        timestamp: new Date().toISOString(),
+      });
+
+      router.push("/opportunities");
+    } catch (error) {
+      console.error("[Academic Project] Submission error:", error);
+      useAppStore.getState().addNotification({
+        id: `ERR${Date.now()}`,
+        title: "Submission Failed",
+        message: "Could not post the academic project. Please try again.",
+        type: "error",
+        read: false,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    return; // stop here for project type
+  }
+
+  // ─────────────────────────────────────────────
+  // CASE 2: Internship
+  // POST /api/internships
+  // ─────────────────────────────────────────────
+  if (formData.type === "internship") {
+    const payload = {
+      title: formData.title,
+      company: formData.company,
+      description: formData.description,
+      stipend: formData.stipend || null,
+      duration: formData.duration || null,
+      skills: skills,               // string[]
+      tags: tags,                   // string[]
+      min_cgpa: formData.minCGPA ? parseFloat(formData.minCGPA) : null,
+      departments: Array.isArray(formData.departments)
+  ? formData.departments
+  : [formData.departments],
+      years: Array.isArray(formData.years)
+  ? formData.years.map(Number)
+  : [Number(formData.years)],
+      deadline: resolvedDeadline,
+      posted_by: userId,        // ← use recruiter ID, not user ID
+    };
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/internships`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || "Backend rejected the request");
+      }
+
+      useAppStore.getState().addNotification({
+        id: `N${Date.now()}`,
+        title: "Internship Posted",
+        message: `${formData.title} has been posted successfully.`,
+        type: "success",
+        read: false,
+        timestamp: new Date().toISOString(),
+      });
+
+      router.push("/opportunities");
+    } catch (error) {
+      console.error("[Internship] Submission error:", error);
+      useAppStore.getState().addNotification({
+        id: `ERR${Date.now()}`,
+        title: "Submission Failed",
+        message: "Could not post the internship. Please try again.",
+        type: "error",
+        read: false,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    return; // stop here for internship type
+  }
+
+  // ─────────────────────────────────────────────
+  // CASE 3: Full-time — DUMMY (edit later)
+  // TODO: Replace with real endpoint when ready
+  // POST /api/fulltime  ← placeholder
+  // ─────────────────────────────────────────────
+  if (formData.type === "fulltime") {
+    console.warn("[Full-time] API not implemented yet — using local store only.");
+
+    // Adds to local Zustand store as a temporary measure
     const newOpportunity = {
       id: `OP${Date.now()}`,
       title: formData.title,
@@ -175,18 +259,31 @@ export default function PostOpportunityPage() {
       stipend: formData.stipend || undefined,
       duration: formData.duration || undefined,
       eligibility: {
-        minCGPA: formData.minCGPA ? Number.parseFloat(formData.minCGPA) : undefined,
+        minCGPA: formData.minCGPA ? parseFloat(formData.minCGPA) : undefined,
         departments: formData.departments.length > 0 ? formData.departments : undefined,
         years: formData.years.length > 0 ? formData.years : undefined,
       },
-      postedBy: "Current User",
+      postedBy: userId || "Current User",
       postedDate: new Date().toISOString().split("T")[0],
       deadline: resolvedDeadline,
       applicants: 0,
-    }
+    };
 
-    addOpportunity(newOpportunity)
+    addOpportunity(newOpportunity);
+
+    useAppStore.getState().addNotification({
+      id: `N${Date.now()}`,
+      title: "Full-time Posted (Local)",
+      message: `${formData.title} saved locally. Backend sync coming soon.`,
+      type: "warning",
+      read: false,
+      timestamp: new Date().toISOString(),
+    });
+
+    router.push("/opportunities");
+    return;
   }
+  
     let backendSyncSuccessful = false
     const parsedMinCgpa = Number.parseFloat(formData.minCGPA)
     const minCgpaForBackend = Number.isFinite(parsedMinCgpa) ? parsedMinCgpa : 0

@@ -813,7 +813,7 @@ export default function OpportunityDetailPage({
         }
 
         // FALLBACK 1: Try projects endpoint (academic projects have numeric ids)
-        const projectsRes = await fetch(`${backendBase}/post-opportunity/getAllOpportunities`)
+        const projectsRes = await fetch(`${backendBase}/api/academic-project/getAllAcademicProjects`)
         if (projectsRes.ok) {
           const projectsData = await projectsRes.json()
           const project = projectsData?.data?.find((p: any) => p.project_id?.toString() === resolvedParams.id)
