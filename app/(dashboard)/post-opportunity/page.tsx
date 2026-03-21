@@ -18,7 +18,7 @@ export default function PostOpportunityPage() {
   const router = useRouter()
   const { addOpportunity } = useAppStore()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const apiBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000"
+  const apiBaseUrl = "/api"; // process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000"
   const { user } = useUser()
   const userId = user?.id;
   console.log("userId: ",userId);

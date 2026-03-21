@@ -44,13 +44,13 @@ const CommitLog = ({ projectId }: { projectId: string }) => {
         <div key={entry.id} className="bg-gray-100 p-3 rounded-lg border-l-4 border-blue-500">
           <p className="font-semibold text-gray-900">{entry.commit_message}</p>
           <div className="flex justify-between mt-2 items-center">
-            <span className={`text-xs px-2 py-1 rounded ${
+            {/* <span className={`text-xs px-2 py-1 rounded ${
               entry.difficulty_of_commit === 0 ? 'bg-green-100 text-green-700' : 
               entry.difficulty_of_commit === 1 ? 'bg-yellow-100 text-yellow-700' : 
               'bg-red-100 text-red-700'
             }`}>
               {entry.difficulty_of_commit === 0 ? 'Easy' : entry.difficulty_of_commit === 1 ? 'Medium' : 'Hard'}
-            </span>
+            </span> */}
             <p className="text-xs text-gray-500">
               {new Date(entry.commit_timestamp).toLocaleDateString('en-GB')}
             </p>

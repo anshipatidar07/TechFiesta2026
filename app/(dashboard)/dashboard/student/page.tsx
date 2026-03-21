@@ -1447,9 +1447,9 @@ export default function StudentDashboard() {
     }
 
     resumes.forEach((resume) => {
-      if (resume.id && !pdfUrls[resume.id]) {
+      // if (resume.id && !pdfUrls[resume.id]) {
         fetchPDFFile(resume.id, resume.name)
-      }
+      // }
     })
 
     return () => {

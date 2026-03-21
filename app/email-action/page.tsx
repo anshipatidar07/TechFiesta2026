@@ -46,7 +46,7 @@ function EmailActionContent() {
       setMessage("Confirming your interest...")
 
       try {
-        const apiBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000"
+        const apiBaseUrl = "/api"; // process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000"
         const response = await fetch(
           `${apiBaseUrl}/drives/confirm-interest?token=${encodeURIComponent(token)}`,
           { method: "GET", credentials: "include" },

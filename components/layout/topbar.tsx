@@ -1,8 +1,9 @@
 "use client"
 
-import { BellIcon, UserCircleIcon, Bars3Icon } from "@heroicons/react/24/outline"
-import { useState } from "react"
+import { BellIcon, UserCircleIcon, Bars3Icon, MoonIcon, SunIcon } from "@heroicons/react/24/outline"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useTheme } from "next-themes"
 import { useAppStore } from "@/lib/store"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -18,10 +19,21 @@ type TopbarProps = {
 export function Topbar({ onMenuClick }: TopbarProps) {
   const router = useRouter()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const { theme, setTheme } = useTheme()
   const { notifications } = useAppStore()
   const unreadCount = notifications.filter((n) => !n.read).length
   
   const { user, loading, error } = useUser()
+
+  // Ensure component is mounted before rendering theme-dependent content
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark")
+  }
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
@@ -53,6 +65,22 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       </div>
 
       <div className="flex items-center gap-3 sm:gap-4">
+        {mounted && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={toggleTheme}
+            className="relative h-9 w-9 p-0 transition-transform hover:scale-110"
+            aria-label="Toggle theme"
+          >
+            {theme === "dark" ? (
+              <SunIcon className="h-6 w-6 text-foreground rotate-0 scale-100 transition-all duration-300" />
+            ) : (
+              <MoonIcon className="h-6 w-6 text-foreground rotate-0 scale-100 transition-all duration-300" />
+            )}
+            <span className="sr-only">Toggle theme</span>
+          </Button>
+        )}
         <Link href="/notifications" className="relative">
           <BellIcon className="h-6 w-6 text-foreground hover:text-primary transition-colors" />
           {unreadCount > 0 && (

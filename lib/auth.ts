@@ -68,7 +68,7 @@ export class ApiError extends Error {
 }
 
 function apiBaseUrl() {
-  return process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000"
+  return "/api"; //process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000"
 }
 
 function isBrowser() {
