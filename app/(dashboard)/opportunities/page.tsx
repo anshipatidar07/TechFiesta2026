@@ -111,22 +111,24 @@ export default function OpportunitiesPage() {
 
         // 2. Map Internships
         if (Array.isArray(internshipsResult)) {
-          const mappedInternships = internshipsResult.map((internship: any) => ({
-            id: internship.id,
-            title: internship.title,
-            company: internship.company || internship.postedBy?.company_name || "Unknown",
-            type: "internship",
-            description: internship.description,
-            skills: Array.isArray(internship.skills) 
-                ? internship.skills 
-                : (typeof internship.skills === 'string' ? internship.skills.split(',').map((s: string) => s.trim()) : []),
-            postedDate: internship.posted_date || new Date().toISOString(),
-            deadline: internship.deadline || new Date().toISOString(),
-            stipend: internship.stipend || "Unpaid",
-            duration: internship.duration || "N/A",
-            applicants: internship.applicants || 0,
-            postedById: internship.postedBy?.user_id || internship.posted_by
-          }))
+         const mappedInternships = internshipsResult.map((internship: any) => ({
+  id: internship.id,
+  title: internship.title,
+  company: internship.company || internship.postedBy?.recruiter?.company_name || "Unknown", // ✅ nested
+  type: "internship",
+  description: internship.description,
+  skills: Array.isArray(internship.skills) 
+    ? internship.skills 
+    : (typeof internship.skills === 'string' 
+        ? internship.skills.split(',').map((s: string) => s.trim()) 
+        : []),
+  postedDate: internship.posted_date || new Date().toISOString(),
+  deadline: internship.deadline || new Date().toISOString(),
+  stipend: internship.stipend || "Unpaid",
+  duration: internship.duration || "N/A",
+  applicants: internship.applicants || 0,
+  postedById: internship.postedBy?.id || internship.posted_by  // ✅ User.id now
+}))
           setInternshipOpportunities(mappedInternships)
         }
       } catch (error) {
