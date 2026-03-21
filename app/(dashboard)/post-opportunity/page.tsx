@@ -35,8 +35,7 @@ export default function PostOpportunityPage() {
     deadline: "",
     minCGPA: "",
     departments: [],   // ✅ MUST be array
-  years: [],         // ✅ MUST be array
-  deadline: "", 
+  years: [],         // ✅ MUST be array 
   })
 
   const [skills, setSkills] = useState<string[]>([])
