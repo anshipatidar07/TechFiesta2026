@@ -507,15 +507,18 @@ export default function PostOpportunityPage() {
               />
             </div>
 
-            <div>
-              <Label htmlFor="duration">Duration</Label>
-              <Input
-                id="duration"
-                placeholder="e.g., 3-6 months"
-                value={formData.duration}
-                onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-              />
-            </div>
+   <div>
+  <Label htmlFor="duration">Duration (Years)</Label>
+  <Input
+    id="duration"
+    type="number"
+    min="1"
+    max="5"
+    placeholder="e.g., 2"
+    value={formData.duration}
+    onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+  />
+</div>
 
             <div>
               <Label htmlFor="deadline">Application Deadline</Label>
@@ -544,6 +547,66 @@ export default function PostOpportunityPage() {
                 onChange={(e) => setFormData({ ...formData, minCGPA: e.target.value })}
               />
             </div>
+            <div>
+  <Label>Departments</Label>
+  <div className="flex flex-wrap gap-2 mt-2">
+    {["CS", "IT", "ENTC", "Mechanical", "Civil", "Electrical", "AIDS", "AIML"].map((dept) => (
+      <button
+        key={dept}
+        type="button"
+        onClick={() => {
+          const current = formData.departments as string[]
+          const updated = current.includes(dept)
+            ? current.filter((d) => d !== dept)
+            : [...current, dept]
+          setFormData({ ...formData, departments: updated as any })
+        }}
+        className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors ${
+          (formData.departments as string[]).includes(dept)
+            ? "bg-primary text-primary-foreground border-primary"
+            : "bg-secondary text-secondary-foreground border-input hover:bg-secondary/80"
+        }`}
+      >
+        {dept}
+      </button>
+    ))}
+  </div>
+  {(formData.departments as string[]).length === 0 && (
+    <p className="text-xs text-muted-foreground mt-1 italic">
+      No departments selected — open to all
+    </p>
+  )}
+</div>
+<div>
+  <Label>Eligible Years</Label>
+  <div className="flex flex-wrap gap-2 mt-2">
+    {[1, 2, 3, 4].map((year) => (
+      <button
+        key={year}
+        type="button"
+        onClick={() => {
+          const current = formData.years as number[]
+          const updated = current.includes(year)
+            ? current.filter((y) => y !== year)
+            : [...current, year]
+          setFormData({ ...formData, years: updated as any })
+        }}
+        className={`px-4 py-1 rounded-full text-sm font-medium border transition-colors ${
+          (formData.years as number[]).includes(year)
+            ? "bg-primary text-primary-foreground border-primary"
+            : "bg-secondary text-secondary-foreground border-input hover:bg-secondary/80"
+        }`}
+      >
+        Year {year}
+      </button>
+    ))}
+  </div>
+  {(formData.years as number[]).length === 0 && (
+    <p className="text-xs text-muted-foreground mt-1 italic">
+      No years selected — open to all
+    </p>
+  )}
+</div>
           </div>
 
           <div className="flex gap-3 pt-4">
