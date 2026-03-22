@@ -29,7 +29,7 @@ import { useUser } from "@/contexts/UserContext"
 export default function OpportunitiesPage() {
   const { user: currentUser, loading: userLoading } = useUser()
   const [search, setSearch] = useState("")
-  const [typeFilter, setTypeFilter] = useState<string>("all")
+ 
   const [sortBy, setSortBy] = useState("recent")
 
   // Normalize backend base URL to avoid "undefined" host in requests
@@ -56,6 +56,14 @@ export default function OpportunitiesPage() {
   const [projectOpportunities, setProjectOpportunities] = useState<any[]>([])
   const [internshipOpportunities, setInternshipOpportunities] = useState<any[]>([])
   const [isPlaced, setIsPlaced] = useState(false)
+
+  useEffect(() => {
+  if (isPlaced) {
+    setTypeFilter("project")
+  }
+}, [isPlaced])
+
+const [typeFilter, setTypeFilter] = useState<string>(isPlaced ? "project" : "all")
 
   useEffect(() => {
     const fetchOpportunities = async () => {
@@ -285,14 +293,20 @@ const [projectsResult, internshipsResult, placedResult] = await Promise.all([
                   <SelectValue placeholder="Type" />
                 </div>
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="internship">Internships</SelectItem>
-                {/* Hide Projects from the filter dropdown for teachers and recruiters */}
-                {!isRecruiter && (
-                  <SelectItem value="project">Projects</SelectItem>
-                )}
-              </SelectContent>
+             <SelectContent>
+  {isPlaced && isStudent ? (
+    // 🔥 Only one option when placed
+    <SelectItem value="project">Academic Projects</SelectItem>
+  ) : (
+    <>
+      <SelectItem value="all">All Types</SelectItem>
+      <SelectItem value="internship">Internships</SelectItem>
+      {!isRecruiter && (
+        <SelectItem value="project">Academic Projects</SelectItem>
+      )}
+    </>
+  )}
+</SelectContent>
             </Select>
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-full bg-background/50">
