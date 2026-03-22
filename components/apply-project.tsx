@@ -48,7 +48,7 @@ export default function ApplyProjectTeam({ projectId, teacherId }: ApplyProjectT
     setErrorMessage("")
 
     try {
-      const response = await fetch(`http://localhost:5000/api/projects/apply`, {
+      const response = await fetch(`http://localhost:5000/api/project-group/apply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
