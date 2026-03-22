@@ -67,8 +67,8 @@ export default function OpportunitiesPage() {
       try {
         // Choose project URL based on user type
         const projectUrl = isTeacher 
-          ? `${backendBase}/api/academic-project/getAcademicProjectById/${currentUser.id}`
-          : `${backendBase}/api/academic-project/getAllAcademicProjects`
+          ? `${backendBase}/api/academic-project/${currentUser.id}`
+  : `${backendBase}/api/academic-project`
         
         let internshipsUrl = `${backendBase}/api/internships/`
         if (isRecruiter) {
@@ -78,13 +78,13 @@ export default function OpportunitiesPage() {
         const placedUrl = `${backendBase}/api/internships/check-placed/${currentUser.id}`
 
         // If user is a recruiter or teacher, we don't fetch projects at all
-        const [projectsResult, internshipsResult, placedResult] = await Promise.all([
-          (isRecruiter || isTeacher) 
-            ? Promise.resolve({ success: false, data: [] }) 
-            : fetch(projectUrl).then(res => res.json()).catch(() => ({ success: false, data: [] })),
-          fetch(internshipsUrl).then(res => res.json()).catch(() => []),
-          fetch(placedUrl).then(res => res.json()).catch(() => ({ isPlaced: false }))
-        ])
+const [projectsResult, internshipsResult, placedResult] = await Promise.all([
+  isRecruiter
+    ? Promise.resolve({ success: false, data: [] })
+    : fetch(projectUrl).then(res => res.json()).catch(() => ({ success: false, data: [] })),
+  fetch(internshipsUrl).then(res => res.json()).catch(() => []),
+  fetch(placedUrl).then(res => res.json()).catch(() => ({ isPlaced: false }))
+])
 
         if (placedResult?.isPlaced) {
           setIsPlaced(true)
@@ -289,7 +289,7 @@ export default function OpportunitiesPage() {
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="internship">Internships</SelectItem>
                 {/* Hide Projects from the filter dropdown for teachers and recruiters */}
-                {!isTeacher && !isRecruiter && (
+                {!isRecruiter && (
                   <SelectItem value="project">Projects</SelectItem>
                 )}
               </SelectContent>
