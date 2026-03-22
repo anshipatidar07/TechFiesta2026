@@ -13,6 +13,7 @@
   import { PlusIcon, XMarkIcon, DocumentArrowUpIcon, DocumentTextIcon } from "@heroicons/react/24/outline"
   import { extractTextFromFile, analyzeSkills } from "@/lib/documentParser" // Import our utility
   import { useUser } from "@/contexts/UserContext"
+  import Snackbar from "@/components/snackbar";
 
   export default function PostOpportunityPage() {
     const router = useRouter()
@@ -24,6 +25,11 @@
     console.log("userId: ",userId);
     const [isParsing, setIsParsing] = useState(false)
     const [fileName, setFileName] = useState("")
+
+    const [snackbar, setSnackbar] = useState<{
+  type: "success" | "error" | "warning" | "info";
+  message: string;
+} | null>(null);
 
     const [formData, setFormData] = useState({
       title: "",
@@ -149,6 +155,11 @@
           throw new Error(errData.error || "Backend rejected the request");
         }
 
+        setSnackbar({
+  type: "success",
+  message: "Opportunity Successfully Created",
+});
+
         useAppStore.getState().addNotification({
           id: `N${Date.now()}`,
           title: "Project Posted",
@@ -158,7 +169,9 @@
           timestamp: new Date().toISOString(),
         });
 
-        router.push("/opportunities");
+      setTimeout(() => {
+  router.push("/opportunities");
+}, 1500);
       } catch (error) {
         console.error("[Academic Project] Submission error:", error);
         useAppStore.getState().addNotification({
@@ -170,6 +183,12 @@
           timestamp: new Date().toISOString(),
         });
       }
+
+      setSnackbar({
+    type: "error",
+    message: "Some unexpected error occurred, please try again later",
+  });
+
 
       return; // stop here for project type
     }
@@ -212,6 +231,11 @@
           const errData = await response.json();
           throw new Error(errData.message || "Backend rejected the request");
         }
+        
+        setSnackbar({
+  type: "success",
+  message: "Opportunity Successfully Created",
+});
 
         useAppStore.getState().addNotification({
           id: `N${Date.now()}`,
@@ -222,9 +246,17 @@
           timestamp: new Date().toISOString(),
         });
 
-        router.push("/opportunities");
+        setTimeout(() => {
+  router.push("/opportunities");
+}, 1500);
       } catch (error) {
         console.error("[Internship] Submission error:", error);
+
+        setSnackbar({
+    type: "error",
+    message: "Some unexpected error occurred, please try again later",
+  });
+
         useAppStore.getState().addNotification({
           id: `ERR${Date.now()}`,
           title: "Submission Failed",
@@ -279,7 +311,9 @@
         timestamp: new Date().toISOString(),
       });
 
-      router.push("/opportunities");
+      setTimeout(() => {
+  router.push("/opportunities");
+}, 1500);
       return;
     }
     
@@ -619,6 +653,16 @@
             </div>
           </Card>
         </form>
+
+        {snackbar && (
+  <Snackbar
+    type={snackbar.type}
+    message={snackbar.message}
+    duration={3000}
+    onClose={() => setSnackbar(null)}
+  />
+)}
+
       </div>
     )
   }
