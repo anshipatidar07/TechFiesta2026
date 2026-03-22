@@ -29,7 +29,7 @@ import { useUser } from "@/contexts/UserContext"
 export default function OpportunitiesPage() {
   const { user: currentUser, loading: userLoading } = useUser()
   const [search, setSearch] = useState("")
-  const [typeFilter, setTypeFilter] = useState<string>("all")
+ 
   const [sortBy, setSortBy] = useState("recent")
 
   // Normalize backend base URL to avoid "undefined" host in requests
@@ -58,6 +58,14 @@ export default function OpportunitiesPage() {
   const [isPlaced, setIsPlaced] = useState(false)
 
   useEffect(() => {
+  if (isPlaced) {
+    setTypeFilter("project")
+  }
+}, [isPlaced])
+
+const [typeFilter, setTypeFilter] = useState<string>(isPlaced ? "project" : "all")
+
+  useEffect(() => {
     const fetchOpportunities = async () => {
       if (!currentUser?.id) {
         if (!userLoading) setLoading(false)
@@ -67,8 +75,8 @@ export default function OpportunitiesPage() {
       try {
         // Choose project URL based on user type
         const projectUrl = isTeacher 
-          ? `${backendBase}/api/academic-project/getAcademicProjectById/${currentUser.id}`
-          : `${backendBase}/api/academic-project/getAllAcademicProjects`
+          ? `${backendBase}/api/academic-project/${currentUser.id}`
+  : `${backendBase}/api/academic-project`
         
         let internshipsUrl = `${backendBase}/api/internships/`
         if (isRecruiter) {
@@ -78,13 +86,13 @@ export default function OpportunitiesPage() {
         const placedUrl = `${backendBase}/api/internships/check-placed/${currentUser.id}`
 
         // If user is a recruiter or teacher, we don't fetch projects at all
-        const [projectsResult, internshipsResult, placedResult] = await Promise.all([
-          (isRecruiter || isTeacher) 
-            ? Promise.resolve({ success: false, data: [] }) 
-            : fetch(projectUrl).then(res => res.json()).catch(() => ({ success: false, data: [] })),
-          fetch(internshipsUrl).then(res => res.json()).catch(() => []),
-          fetch(placedUrl).then(res => res.json()).catch(() => ({ isPlaced: false }))
-        ])
+const [projectsResult, internshipsResult, placedResult] = await Promise.all([
+  isRecruiter
+    ? Promise.resolve({ success: false, data: [] })
+    : fetch(projectUrl).then(res => res.json()).catch(() => ({ success: false, data: [] })),
+  fetch(internshipsUrl).then(res => res.json()).catch(() => []),
+  fetch(placedUrl).then(res => res.json()).catch(() => ({ isPlaced: false }))
+])
 
         if (placedResult?.isPlaced) {
           setIsPlaced(true)
@@ -111,22 +119,24 @@ export default function OpportunitiesPage() {
 
         // 2. Map Internships
         if (Array.isArray(internshipsResult)) {
-          const mappedInternships = internshipsResult.map((internship: any) => ({
-            id: internship.id,
-            title: internship.title,
-            company: internship.company || internship.postedBy?.company_name || "Unknown",
-            type: "internship",
-            description: internship.description,
-            skills: Array.isArray(internship.skills) 
-                ? internship.skills 
-                : (typeof internship.skills === 'string' ? internship.skills.split(',').map((s: string) => s.trim()) : []),
-            postedDate: internship.posted_date || new Date().toISOString(),
-            deadline: internship.deadline || new Date().toISOString(),
-            stipend: internship.stipend || "Unpaid",
-            duration: internship.duration || "N/A",
-            applicants: internship.applicants || 0,
-            postedById: internship.postedBy?.user_id || internship.posted_by
-          }))
+         const mappedInternships = internshipsResult.map((internship: any) => ({
+  id: internship.id,
+  title: internship.title,
+  company: internship.company || internship.postedBy?.recruiter?.company_name || "Unknown", // ✅ nested
+  type: "internship",
+  description: internship.description,
+  skills: Array.isArray(internship.skills) 
+    ? internship.skills 
+    : (typeof internship.skills === 'string' 
+        ? internship.skills.split(',').map((s: string) => s.trim()) 
+        : []),
+  postedDate: internship.posted_date || new Date().toISOString(),
+  deadline: internship.deadline || new Date().toISOString(),
+  stipend: internship.stipend || "Unpaid",
+  duration: internship.duration || "N/A",
+  applicants: internship.applicants || 0,
+  postedById: internship.postedBy?.id || internship.posted_by  // ✅ User.id now
+}))
           setInternshipOpportunities(mappedInternships)
         }
       } catch (error) {
@@ -283,14 +293,20 @@ export default function OpportunitiesPage() {
                   <SelectValue placeholder="Type" />
                 </div>
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="internship">Internships</SelectItem>
-                {/* Hide Projects from the filter dropdown for teachers and recruiters */}
-                {!isTeacher && !isRecruiter && (
-                  <SelectItem value="project">Projects</SelectItem>
-                )}
-              </SelectContent>
+             <SelectContent>
+  {isPlaced && isStudent ? (
+    // 🔥 Only one option when placed
+    <SelectItem value="project">Academic Projects</SelectItem>
+  ) : (
+    <>
+      <SelectItem value="all">All Types</SelectItem>
+      <SelectItem value="internship">Internships</SelectItem>
+      {!isRecruiter && (
+        <SelectItem value="project">Academic Projects</SelectItem>
+      )}
+    </>
+  )}
+</SelectContent>
             </Select>
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-full bg-background/50">
