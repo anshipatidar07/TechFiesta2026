@@ -75,7 +75,7 @@ const [typeFilter, setTypeFilter] = useState<string>(isPlaced ? "project" : "all
       try {
         // Choose project URL based on user type
         const projectUrl = isTeacher 
-          ? `${backendBase}/api/academic-project/${currentUser.id}`
+          ? `${backendBase}/api/academic-project/by-userid/${currentUser.id}`
   : `${backendBase}/api/academic-project`
         
         let internshipsUrl = `${backendBase}/api/internships/`
@@ -375,7 +375,7 @@ const [projectsResult, internshipsResult, placedResult] = await Promise.all([
                   </Button>
                 )}
                 <Button asChild className="w-full shadow-sm" variant="outline" size="sm">
-                  <Link href={`/opportunities/${opp.id}`}>Details</Link>
+                  <Link href={`/opportunities/${opp.type}/${opp.id}`}>Details</Link>
                 </Button>
               </div>
             </Card>

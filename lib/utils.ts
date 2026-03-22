@@ -5,8 +5,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatDate(dateString: string): string {
+export function formatDate(dateString?: string | null): string {
+  if (!dateString) return "N/A"  // 🔥 prevents 1970
+
   const date = new Date(dateString)
+
+  if (isNaN(date.getTime())) return "Invalid Date" // extra safety
+
   return new Intl.DateTimeFormat("en-IN", {
     year: "numeric",
     month: "short",

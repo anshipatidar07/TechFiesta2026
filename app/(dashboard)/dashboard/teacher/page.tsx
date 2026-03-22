@@ -38,7 +38,7 @@ export default function TeacherDashboard() {
         setLoading(true)
         try {
           console.log("fetching projects");
-          const response = await fetch(`http://localhost:5000/api/academic-project/getAcademicProjectById/${currentUser?.id}`)
+          const response = await fetch(`http://localhost:5000/api/academic-project/getAcademicProjectByTeacherId/${currentUser?.id}`)
           const result = await response.json()
           
           if (result.success) {
