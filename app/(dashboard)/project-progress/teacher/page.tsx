@@ -201,6 +201,8 @@ import { Users, ClipboardList, TrendingUp, BookOpen, ArrowLeft } from 'lucide-re
 import ProjectDashboardView from '../../../../components/project-details';
 import ProjectTimeline from '../../../../components/project-timeline';
 import ChatLogbook from '../../../../components/chat-logbook';
+import ProjectAnalyticsRAG from '@/components/project-analytics-rag';
+import { useUser } from "@/contexts/UserContext"
 
 // 1. Updated Enums to include 'SUBMITTED'
 enum PhaseStatus {
@@ -239,7 +241,7 @@ interface Project {
 export default function TeacherDashboard() {
   const [isLogbookOpen, setIsLogbookOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-
+   const { user: currentUser, loading: userLoading } = useUser()
   // Filter States
   const [projectFilter, setProjectFilter] = useState('');
   const [teamFilter, setTeamFilter] = useState('');
@@ -403,7 +405,7 @@ export default function TeacherDashboard() {
           <div className="w-full">
             <ProjectDashboardView
               projectData={selectedProject}
-              userRole="TEACHER"
+              userRole={currentUser?.role}
             />
           </div>
 
@@ -443,6 +445,8 @@ export default function TeacherDashboard() {
             </div>
           </div>
 
+          <ProjectAnalyticsRAG project={selectedProject} />
+
           {/* Project Timeline */}
           <div className="bg-white rounded-lg shadow-md p-4 sm:p-8 border border-gray-100">
             <div className="flex items-center mb-6 border-b pb-4">
@@ -454,7 +458,7 @@ export default function TeacherDashboard() {
             </div>
             <ProjectTimeline
               phases={selectedProject.phases}
-              userRole="TEACHER"
+              userRole={currentUser?.role}
               onStatusChange={handleStatusChange}
             />
           </div>
@@ -465,7 +469,7 @@ export default function TeacherDashboard() {
           isOpen={isLogbookOpen}
           onClose={() => setIsLogbookOpen(false)}
           projectData={selectedProject}
-          userRole="TEACHER"
+          userRole={currentUser?.role}
         />
       </div>
     );
