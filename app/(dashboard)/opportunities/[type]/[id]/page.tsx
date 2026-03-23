@@ -105,7 +105,7 @@ const data = resData.data
   }, [type, id, user])
 
   // Effect 2: fetch groups only after both opportunity and user are ready
-useEffect(() => {
+  useEffect(() => {
   const fetchGroups = async () => {
     if (!opportunity || !isStaff || opportunity.type !== "project") return
     try {
@@ -185,6 +185,27 @@ useEffect(() => {
       setIsApplying(false)
     }
   }
+
+  const handleGroupStatus = async (group_id: number, status: "ACCEPTED" | "REJECTED") => {
+  try {
+    const res = await fetch(
+      `${backendBase}/api/project-group/${opportunity.id}/groups/${group_id}/status`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      }
+    )
+    if (!res.ok) throw new Error("Failed to update status")
+
+    // optimistically update UI
+    setAppliedGroups((prev: any[]) =>
+      prev.map((g) => g.group_id === group_id ? { ...g, status } : g)
+    )
+  } catch (err: any) {
+    alert(err.message)
+  }
+}
 
   const handleSelect = async (applicationId: string) => {
     try {
@@ -266,14 +287,41 @@ useEffect(() => {
       <div className="space-y-4">
         {appliedGroups.map((group) => (
           <div key={group.group_id} className="rounded-lg border border-border bg-background/50 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-foreground">
-                {group.group_name || `Group #${group.group_id}`}
-              </h3>
-              <span className="text-xs text-muted-foreground">
-                {group.member_count} member(s)
-              </span>
-            </div>
+          <div className="flex items-center justify-between mb-3">
+  <h3 className="font-semibold text-foreground">
+    {group.group_name || `Group #${group.group_id}`}
+  </h3>
+  <div className="flex items-center gap-2">
+    <span className="text-xs text-muted-foreground">{group.member_count} member(s)</span>
+
+    {group.status === "PENDING" ? (
+      <>
+        <Button
+          size="sm"
+          onClick={() => handleGroupStatus(group.group_id, "ACCEPTED")}
+          className="bg-green-600 hover:bg-green-700 text-white"
+        >
+          Accept
+        </Button>
+        <Button
+          size="sm"
+          variant="destructive"
+          onClick={() => handleGroupStatus(group.group_id, "REJECTED")}
+        >
+          Reject
+        </Button>
+      </>
+    ) : (
+      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+        group.status === "ACCEPTED"
+          ? "bg-green-100 text-green-700"
+          : "bg-red-100 text-red-700"
+      }`}>
+        {group.status}
+      </span>
+    )}
+  </div>
+</div>
 
             <table className="w-full text-sm text-left">
               <thead className="bg-secondary/50 text-secondary-foreground border-b border-border">
