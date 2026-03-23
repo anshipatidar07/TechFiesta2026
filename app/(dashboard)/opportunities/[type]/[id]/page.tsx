@@ -26,14 +26,25 @@ export default function OpportunityDetailPage() {
   const [loading, setLoading] = useState(true)
   const [isApplying, setIsApplying] = useState(false)
   const [error, setError] = useState<string | null>(null)
+ const [appliedGroups, setAppliedGroups] = useState<any[]>([])
 
   const isStaff = ["tnp", "recruiter", "teacher"].includes(user?.username?.toLowerCase() || "")
   const isStudent = user?.username === "student" || user?.username === "anshi_student"
 
   useEffect(() => {
     const fetchOpportunity = async () => {
+
+
       setLoading(true)
       setError(null)
+
+      
+      if (type === "project" && isStaff) {
+        const groupsRes = await fetch(`${backendBase}/api/project-group/${id}/groups`)
+        const groupsData = await groupsRes.json()
+      if (groupsRes.ok) setAppliedGroups(groupsData.data || [])
+      }
+
       try {
         let url = ""
         if (type === "internship") {
@@ -91,7 +102,22 @@ const data = resData.data
     }
 
     if (type && id) fetchOpportunity()
-  }, [type, id])
+  }, [type, id, user])
+
+  // Effect 2: fetch groups only after both opportunity and user are ready
+useEffect(() => {
+  const fetchGroups = async () => {
+    if (!opportunity || !isStaff || opportunity.type !== "project") return
+    try {
+      const groupsRes = await fetch(`${backendBase}/api/academic-project/${opportunity.id}/groups`)
+      const groupsData = await groupsRes.json()
+      if (groupsRes.ok) setAppliedGroups(groupsData.data || [])
+    } catch (err) {
+      console.error("Failed to fetch groups:", err)
+    }
+  }
+  fetchGroups()
+}, [opportunity, user]) 
 
   if (loading || userLoading) {
     return (
@@ -227,62 +253,74 @@ const data = resData.data
           </Card>
 
           {/* Staff: Applicants Table */}
-          {isStaff && (
-            <Card className="glass rounded-2xl p-6 border-primary/20 bg-primary/5">
-              <div className="flex items-center gap-2 mb-4">
-                <UsersIcon className="h-6 w-6 text-primary" />
-                <h2 className="text-xl font-bold text-primary">
-                  Students Applied ({opportunity.applications?.length || 0})
-                </h2>
-              </div>
+          {isStaff && opportunity.type === "project" && (
+  <Card className="glass rounded-2xl p-6 border-primary/20 bg-primary/5">
+    <div className="flex items-center gap-2 mb-4">
+      <UsersIcon className="h-6 w-6 text-primary" />
+      <h2 className="text-xl font-bold text-primary">
+        Applied Groups ({appliedGroups.length})
+      </h2>
+    </div>
 
-              {opportunity.applications?.length > 0 ? (
-                <div className="overflow-x-auto rounded-lg border border-border bg-background/50">
-                  <table className="w-full text-sm text-left">
-                    <thead className="bg-secondary/50 text-secondary-foreground border-b border-border">
-                      <tr>
-                        <th className="px-4 py-3 font-medium">Student Name</th>
-                        <th className="px-4 py-3 font-medium">Email</th>
-                        <th className="px-4 py-3 font-medium">Dept</th>
-                        <th className="px-4 py-3 font-medium">CGPA</th>
-                        <th className="px-4 py-3 font-medium">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {opportunity.applications.map((app: any) => (
-                        <tr key={app.id || Math.random()} className="hover:bg-muted/50 transition-colors">
-                          <td className="px-4 py-4 font-medium text-foreground whitespace-nowrap">
-                            {app.student?.first_name} {app.student?.last_name}
-                          </td>
-                          <td className="px-4 py-4 text-muted-foreground whitespace-nowrap">
-                            <div className="flex items-center gap-1.5">
-                              <EnvelopeIcon className="h-4 w-4" />
-                              <a href={`mailto:${app.student?.primary_email}`} className="hover:text-primary transition-colors">
-                                {app.student?.primary_email}
-                              </a>
-                            </div>
-                          </td>
-                          <td className="px-4 py-4 text-muted-foreground">{app.student?.department || "N/A"}</td>
-                          <td className="px-4 py-4 font-bold text-foreground">{app.student?.cgpa || "N/A"}</td>
-                          <td className="px-4 py-4">
-                            {app.status === "SELECTED" ? (
-                              <span className="text-green-600 font-semibold">Selected</span>
-                            ) : (
-                              <Button size="sm" onClick={() => handleSelect(app.id)}>Select</Button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-center py-8 border-2 border-dashed border-border rounded-lg bg-background/50">
-                  <p className="text-muted-foreground">No students have applied yet.</p>
-                </div>
-              )}
-            </Card>
-          )}
+    {appliedGroups.length > 0 ? (
+      <div className="space-y-4">
+        {appliedGroups.map((group) => (
+          <div key={group.group_id} className="rounded-lg border border-border bg-background/50 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-foreground">
+                {group.group_name || `Group #${group.group_id}`}
+              </h3>
+              <span className="text-xs text-muted-foreground">
+                {group.member_count} member(s)
+              </span>
+            </div>
+
+            <table className="w-full text-sm text-left">
+              <thead className="bg-secondary/50 text-secondary-foreground border-b border-border">
+                <tr>
+                  <th className="px-3 py-2 font-medium">Name</th>
+                  <th className="px-3 py-2 font-medium">Email</th>
+                  <th className="px-3 py-2 font-medium">Dept</th>
+                  <th className="px-3 py-2 font-medium">CGPA</th>
+                  <th className="px-3 py-2 font-medium">Role</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {group.members.map((member:any) => (
+                  <tr key={member.registration_number} className="hover:bg-muted/50 transition-colors">
+                    <td className="px-3 py-3 font-medium text-foreground whitespace-nowrap">
+                      {member.first_name} {member.last_name}
+                    </td>
+                    <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">
+                      <a href={`mailto:${member.primary_email}`} className="hover:text-primary transition-colors">
+                        {member.primary_email}
+                      </a>
+                    </td>
+                    <td className="px-3 py-3 text-muted-foreground">{member.department || "N/A"}</td>
+                    <td className="px-3 py-3 font-bold text-foreground">{member.cgpa ?? "N/A"}</td>
+                    <td className="px-3 py-3">
+                      {group.leader?.registration_number === member.registration_number ? (
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                          Leader
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Member</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <div className="text-center py-8 border-2 border-dashed border-border rounded-lg bg-background/50">
+        <p className="text-muted-foreground">No groups have applied yet.</p>
+      </div>
+    )}
+  </Card>
+)}
 
           {/* Student: Application Timeline */}
           {isStudent && hasApplied && (
