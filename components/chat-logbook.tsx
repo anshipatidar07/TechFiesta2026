@@ -35,7 +35,11 @@ const ChatLogbook = ({ isOpen, onClose, projectData, userRole }: ChatLogbookProp
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: updatedMessages, projectId: projectData.project_id })
+          body: JSON.stringify({ 
+            messages: updatedMessages, 
+            project_id: projectData.project_id, // Changed from projectId to project_id
+            force_reindex: true                 // Added to match your successful Postman payload
+          })
         }
       );
 
