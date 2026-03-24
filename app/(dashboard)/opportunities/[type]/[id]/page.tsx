@@ -10,6 +10,7 @@ import { ArrowLeftIcon, CheckCircleIcon, UsersIcon, EnvelopeIcon } from "@heroic
 import { formatDate, getDaysUntil } from "@/lib/utils"
 import { calculateMatchScore } from "@/lib/mock-data"
 import ApplyProjectTeam from "@/components/apply-project"
+import ProjectApplicationStatus from "@/components/ProjectApplicationStatus"
 import { useUser } from "@/contexts/UserContext"
 
 export default function OpportunityDetailPage() {
@@ -27,6 +28,13 @@ export default function OpportunityDetailPage() {
   const [isApplying, setIsApplying] = useState(false)
   const [error, setError] = useState<string | null>(null)
  const [appliedGroups, setAppliedGroups] = useState<any[]>([])
+ const [groupStatus, setGroupStatus] = useState<{
+  status: "PENDING" | "ACCEPTED" | "REJECTED"
+  group_name: string
+  is_leader: boolean
+} | null>(null)
+const [groupStatusLoading, setGroupStatusLoading] = useState(false)
+
 
   const isStaff = ["tnp", "recruiter", "teacher"].includes(user?.username?.toLowerCase() || "")
   const isStudent = user?.username === "student" || user?.username === "anshi_student"
@@ -118,6 +126,26 @@ const data = resData.data
   }
   fetchGroups()
 }, [opportunity, user]) 
+
+// Effect 3: fetch student's group status for this project
+useEffect(() => {
+  const fetchGroupStatus = async () => {
+    if (!opportunity || opportunity.type !== "project" || !isStudent || !user?.id) return
+    setGroupStatusLoading(true)
+    try {
+      const res = await fetch(
+        `${backendBase}/api/project-group/${opportunity.id}/my-group-status?userId=${user.id}`
+      )
+      const data = await res.json()
+      setGroupStatus(data.data || null) // null means not applied yet
+    } catch (err) {
+      console.error("Failed to fetch group status:", err)
+    } finally {
+      setGroupStatusLoading(false)
+    }
+  }
+  fetchGroupStatus()
+}, [opportunity, user])
 
   if (loading || userLoading) {
     return (
@@ -423,13 +451,28 @@ const data = resData.data
               </Button>
             ) : (
               <>
-                {opportunity.type === "project" ? (
-                  <ApplyProjectTeam projectId={opportunity.id} teacherId={opportunity.postedBy || ""} />
-                ) : (
-                  <Button onClick={handleApply} disabled={isApplying} className="w-full" size="lg">
-                    {isApplying ? "Submitting..." : "Apply Now"}
-                  </Button>
-                )}
+                 {opportunity.type === "project" ? (
+  groupStatusLoading ? (
+    <div className="h-10 bg-muted animate-pulse rounded-md" />
+  ) : groupStatus ? (
+    // Already applied — show status regardless of leader/member
+    <ProjectApplicationStatus
+      status={groupStatus.status}
+      groupName={groupStatus.group_name}
+      isLeader={groupStatus.is_leader}
+    />
+  ) : (
+    // Not applied yet — ApplyProjectTeam handles leader vs non-leader internally
+    <ApplyProjectTeam
+      projectId={opportunity.id}
+      onSuccess={(status) => setGroupStatus(status)}
+    />
+  )
+) : (
+  <Button onClick={handleApply} disabled={isApplying} className="w-full" size="lg">
+    {isApplying ? "Submitting..." : "Apply Now"}
+  </Button>
+)}
               </>
             )}
           </Card>

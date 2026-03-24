@@ -3,38 +3,38 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { CheckCircleIcon, UsersIcon } from "@heroicons/react/24/outline"
+import { UsersIcon } from "@heroicons/react/24/outline"
 import { useUser } from "@/contexts/UserContext"
 
 interface ApplyProjectTeamProps {
-  projectId: string;
-  teacherId: string;
+  projectId: string
+  onSuccess?: (groupStatus: { status: "PENDING"; group_name: string; is_leader: boolean }) => void
 }
 
-export default function ApplyProjectTeam({ projectId, teacherId }: ApplyProjectTeamProps) {
+export default function ApplyProjectTeam({ projectId, onSuccess }: ApplyProjectTeamProps) {
   const { user: currentUser } = useUser()
+  const backendBase = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000").replace(/\/+$/, "")
+
   const [teams, setTeams] = useState<any[]>([])
   const [selectedGroupId, setSelectedGroupId] = useState("")
   const [isLoadingTeams, setIsLoadingTeams] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState("")
 
-  // Fetch all teams where the current user is the leader
   useEffect(() => {
     const fetchLeaderTeams = async () => {
       if (!currentUser?.id) return
       try {
-        const response = await fetch(
-          `http://localhost:5000/api/team-builder/get-teams-by-Leader/${currentUser.id}`,
+        const res = await fetch(
+          `${backendBase}/api/team-builder/get-teams-by-Leader/${currentUser.id}`,
           { credentials: "include" }
         )
-        if (response.ok) {
-          const data = await response.json()
+        if (res.ok) {
+          const data = await res.json()
           setTeams(data.teams || [])
         }
-      } catch (error) {
-        console.error("Failed to fetch leader teams:", error)
+      } catch (err) {
+        console.error("Failed to fetch leader teams:", err)
       } finally {
         setIsLoadingTeams(false)
       }
@@ -48,38 +48,43 @@ export default function ApplyProjectTeam({ projectId, teacherId }: ApplyProjectT
     setErrorMessage("")
 
     try {
-      const response = await fetch(`http://localhost:5000/api/project-group/apply`, {
+      const res = await fetch(`${backendBase}/api/project-group/apply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          project_id: projectId,
-          group_id: selectedGroupId,
-        }),
+        body: JSON.stringify({ project_id: projectId, group_id: selectedGroupId }),
       })
 
-      const data = await response.json()
+      const data = await res.json()
 
-      if (response.ok) {
-        setStatus("success")
+      if (res.ok) {
+        const selectedTeam = teams.find((t) => String(t.id) === String(selectedGroupId))
+        // Bubble up to parent so it switches to status view immediately
+        onSuccess?.({
+          status: "PENDING",
+          group_name: selectedTeam?.name || `Group #${selectedGroupId}`,
+          is_leader: true,
+        })
       } else {
         setErrorMessage(data.error || "Application failed. Please try again.")
-        setStatus("error")
       }
-    } catch (error) {
+    } catch {
       setErrorMessage("Network error. Please try again.")
-      setStatus("error")
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  if (status === 'success') {
+  // Not a leader — they have no groups to lead
+  if (!isLoadingTeams && teams.length === 0) {
     return (
-      <div className="py-4 text-center">
-        <CheckCircleIcon className="mx-auto h-12 w-12 text-green-600 mb-2" />
-        <p className="font-medium text-foreground">Application Submitted</p>
-        <p className="text-sm text-muted-foreground">Your team is now associated with this project.</p>
+      <div className="py-4 text-center space-y-2">
+        <UsersIcon className="mx-auto h-8 w-8 text-muted-foreground" />
+        <p className="text-sm font-medium text-foreground">Cannot Apply</p>
+        <p className="text-xs text-muted-foreground leading-snug">
+          Only group leaders can apply for academic projects.
+          Create a group in the Team Builder to apply.
+        </p>
       </div>
     )
   }
@@ -98,17 +103,12 @@ export default function ApplyProjectTeam({ projectId, teacherId }: ApplyProjectT
 
         {isLoadingTeams ? (
           <div className="h-10 bg-muted animate-pulse rounded-md" />
-        ) : teams.length === 0 ? (
-          <div className="text-xs text-muted-foreground bg-muted/50 border border-border rounded-md px-3 py-2">
-            You are not a leader of any team. Create a team first in the Team Builder.
-          </div>
         ) : (
           <select
             id="groupSelect"
             value={selectedGroupId}
             onChange={(e) => {
               setSelectedGroupId(e.target.value)
-              setStatus("idle")
               setErrorMessage("")
             }}
             className="w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
@@ -129,18 +129,37 @@ export default function ApplyProjectTeam({ projectId, teacherId }: ApplyProjectT
 
       <Button
         className="w-full"
-        disabled={isSubmitting || !selectedGroupId || teams.length === 0}
+        disabled={isSubmitting || !selectedGroupId}
         onClick={handleApply}
         size="lg"
       >
         {isSubmitting ? "Verifying..." : "Submit Application"}
       </Button>
 
-      {status === 'error' && (
-        <p className="text-xs text-destructive text-center">
-          {errorMessage || "Invalid team or criteria not met."}
-        </p>
+      {errorMessage && (
+        <p className="text-xs text-destructive text-center">{errorMessage}</p>
       )}
     </div>
   )
 }
+// ```
+
+// ---
+
+// ### Summary of the full flow
+// ```
+// Student lands on project page
+//         │
+//         ▼
+// fetch /my-group-status
+//         │
+//    ┌────┴────┐
+//  data=null  data exists
+//    │            │
+//    ▼            ▼
+// ApplyProjectTeam   ProjectApplicationStatus
+//    │                  (shows PENDING/ACCEPTED/REJECTED)
+//    ├─ has led groups → dropdown + submit
+//    │      └─ on success → onSuccess() → switches to status view
+//    │
+//    └─ no led groups → "Only leaders can apply" message
