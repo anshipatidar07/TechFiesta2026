@@ -16,9 +16,9 @@ export default function DashboardLayout({
   return (
     <UserProvider>
       <div className="flex min-h-dvh overflow-hidden bg-background">
-        <div className="hidden md:block">
-          <Sidebar />
-        </div>
+       <div className="hidden md:block sticky top-0 h-dvh">
+  <Sidebar />
+</div>
 
         {isMobileSidebarOpen && (
           <div

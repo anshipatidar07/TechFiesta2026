@@ -137,6 +137,7 @@
         skills: skills,               // string[] → joined as CSV in backend
         min_cgpa: formData.minCGPA,
         registration_deadline: resolvedDeadline,
+        deadline: resolvedDeadline,
         userid: userId,               // teacher lookup happens on backend
       };
 
@@ -182,12 +183,15 @@
           read: false,
           timestamp: new Date().toISOString(),
         });
-      }
 
+        
       setSnackbar({
     type: "error",
     message: "Some unexpected error occurred, please try again later",
   });
+  
+      }
+
 
 
       return; // stop here for project type

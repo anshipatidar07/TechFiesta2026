@@ -72,7 +72,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
   const links = navigation[activeRole] || navigation.student
 
   return (
-    <div className="flex h-full w-64 max-w-[85vw] flex-col border-r border-border bg-sidebar md:h-screen">
+  <div className="flex h-full w-64 max-w-[85vw] flex-col border-r border-border bg-sidebar">
       <div className="flex h-16 items-center border-b border-border px-6">
         <Link href="/" className="flex items-center gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
